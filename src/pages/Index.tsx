@@ -13,6 +13,11 @@ interface Todo {
   completed: boolean;
 }
 
+interface TodoCount {
+  totalCount: number;
+  completedCount: number;
+}
+
 const Index = () => {
   const [newTodo, setNewTodo] = useState("");
   const { toast } = useToast();
@@ -29,6 +34,24 @@ const Index = () => {
 
       if (error) throw error;
       return data;
+    },
+  });
+
+  // Fetch todo counts
+  const { data: todoCounts } = useQuery({
+    queryKey: ["todo-counts"],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("No session");
+
+      const response = await supabase.functions.invoke<TodoCount>("count-todos", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (response.error) throw response.error;
+      return response.data;
     },
   });
 
@@ -49,6 +72,7 @@ const Index = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["todos"] });
+      queryClient.invalidateQueries({ queryKey: ["todo-counts"] });
       toast({
         title: "Task added",
         description: "Your new task has been added successfully.",
@@ -75,6 +99,7 @@ const Index = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["todos"] });
+      queryClient.invalidateQueries({ queryKey: ["todo-counts"] });
     },
   });
 
@@ -87,6 +112,7 @@ const Index = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["todos"] });
+      queryClient.invalidateQueries({ queryKey: ["todo-counts"] });
       toast({
         title: "Task deleted",
         description: "The task has been removed from your list.",
@@ -107,20 +133,23 @@ const Index = () => {
     await supabase.auth.signOut();
   };
 
-  const activeTasks = todos.filter((todo) => !todo.completed).length;
-
   return (
     <div className="mx-auto min-h-screen max-w-2xl px-4 py-8">
       <div className="mb-8 flex items-center justify-between">
         <div className="text-left">
           <h1 className="mb-2 text-4xl font-bold tracking-tight">Tasks</h1>
-          <p className="text-lg text-muted-foreground">
-            {activeTasks === 0
-              ? "All caught up!"
-              : `You have ${activeTasks} active ${
-                  activeTasks === 1 ? "task" : "tasks"
-                }`}
-          </p>
+          {todoCounts ? (
+            <div className="space-y-1">
+              <p className="text-lg text-muted-foreground">
+                Total tasks: {todoCounts.totalCount}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {todoCounts.completedCount} completed, {todoCounts.totalCount - todoCounts.completedCount} remaining
+              </p>
+            </div>
+          ) : (
+            <p className="text-lg text-muted-foreground">Loading counts...</p>
+          )}
         </div>
         <button
           onClick={handleLogout}
