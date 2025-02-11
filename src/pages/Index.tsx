@@ -35,9 +35,12 @@ const Index = () => {
   // Add todo mutation
   const addTodoMutation = useMutation({
     mutationFn: async (text: string) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
       const { data, error } = await supabase
         .from("todos")
-        .insert([{ text }])
+        .insert([{ text, user_id: user.id }])
         .select()
         .single();
 
