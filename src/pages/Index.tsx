@@ -3,7 +3,9 @@ import { useState } from "react";
 import { TodoItem } from "@/components/TodoItem";
 import { EmptyState } from "@/components/EmptyState";
 import { useToast } from "@/components/ui/use-toast";
-import { Plus } from "lucide-react";
+import { Plus, LogOut } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface Todo {
   id: string;
@@ -12,58 +14,118 @@ interface Todo {
 }
 
 const Index = () => {
-  const [todos, setTodos] = useState<Todo[]>([]);
   const [newTodo, setNewTodo] = useState("");
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Fetch todos
+  const { data: todos = [], isLoading } = useQuery({
+    queryKey: ["todos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("todos")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Add todo mutation
+  const addTodoMutation = useMutation({
+    mutationFn: async (text: string) => {
+      const { data, error } = await supabase
+        .from("todos")
+        .insert([{ text }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["todos"] });
+      toast({
+        title: "Task added",
+        description: "Your new task has been added successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Toggle todo mutation
+  const toggleTodoMutation = useMutation({
+    mutationFn: async ({ id, completed }: { id: string; completed: boolean }) => {
+      const { error } = await supabase
+        .from("todos")
+        .update({ completed })
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["todos"] });
+    },
+  });
+
+  // Delete todo mutation
+  const deleteTodoMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("todos").delete().eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["todos"] });
+      toast({
+        title: "Task deleted",
+        description: "The task has been removed from your list.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTodo.trim()) return;
 
-    const todo: Todo = {
-      id: crypto.randomUUID(),
-      text: newTodo.trim(),
-      completed: false,
-    };
-
-    setTodos((prev) => [todo, ...prev]);
+    await addTodoMutation.mutateAsync(newTodo.trim());
     setNewTodo("");
-    toast({
-      title: "Task added",
-      description: "Your new task has been added successfully.",
-    });
   };
 
-  const toggleTodo = (id: string) => {
-    setTodos((prev) =>
-      prev.map((todo) =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo
-      )
-    );
-  };
-
-  const deleteTodo = (id: string) => {
-    setTodos((prev) => prev.filter((todo) => todo.id !== id));
-    toast({
-      title: "Task deleted",
-      description: "The task has been removed from your list.",
-      variant: "destructive",
-    });
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
   };
 
   const activeTasks = todos.filter((todo) => !todo.completed).length;
 
   return (
     <div className="mx-auto min-h-screen max-w-2xl px-4 py-8">
-      <div className="mb-8 text-center">
-        <h1 className="mb-2 text-4xl font-bold tracking-tight">Tasks</h1>
-        <p className="text-lg text-muted-foreground">
-          {activeTasks === 0
-            ? "All caught up!"
-            : `You have ${activeTasks} active ${
-                activeTasks === 1 ? "task" : "tasks"
-              }`}
-        </p>
+      <div className="mb-8 flex items-center justify-between">
+        <div className="text-left">
+          <h1 className="mb-2 text-4xl font-bold tracking-tight">Tasks</h1>
+          <p className="text-lg text-muted-foreground">
+            {activeTasks === 0
+              ? "All caught up!"
+              : `You have ${activeTasks} active ${
+                  activeTasks === 1 ? "task" : "tasks"
+                }`}
+          </p>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-2 rounded-lg border px-4 py-2 text-sm text-muted-foreground hover:bg-secondary"
+        >
+          <LogOut className="h-4 w-4" />
+          Sign Out
+        </button>
       </div>
 
       <form onSubmit={handleSubmit} className="mb-8">
@@ -77,7 +139,7 @@ const Index = () => {
           />
           <button
             type="submit"
-            disabled={!newTodo.trim()}
+            disabled={!newTodo.trim() || addTodoMutation.isPending}
             className="flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-medium text-primary-foreground transition-all duration-300 hover:bg-primary/90 disabled:opacity-50"
           >
             <Plus className="h-5 w-5" />
@@ -87,15 +149,22 @@ const Index = () => {
       </form>
 
       <div className="space-y-4">
-        {todos.length === 0 ? (
+        {isLoading ? (
+          <p className="text-center text-muted-foreground">Loading tasks...</p>
+        ) : todos.length === 0 ? (
           <EmptyState />
         ) : (
           todos.map((todo) => (
             <TodoItem
               key={todo.id}
               {...todo}
-              onToggle={toggleTodo}
-              onDelete={deleteTodo}
+              onToggle={(id) =>
+                toggleTodoMutation.mutate({
+                  id,
+                  completed: !todos.find((t) => t.id === id)?.completed,
+                })
+              }
+              onDelete={(id) => deleteTodoMutation.mutate(id)}
             />
           ))
         )}
