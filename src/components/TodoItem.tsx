@@ -18,8 +18,9 @@ export const TodoItem = ({ id, text, completed, onToggle, onDelete }: TodoItemPr
     <div
       className={cn(
         "group relative flex items-center gap-4 rounded-lg border p-4 transition-all duration-300",
-        "hover:border-primary/20 hover:shadow-lg",
-        completed && "bg-secondary/50"
+        "bg-white/50 backdrop-blur-sm hover:shadow-lg",
+        "border-indigo-100 hover:border-indigo-200",
+        completed && "bg-indigo-50/50"
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -29,8 +30,8 @@ export const TodoItem = ({ id, text, completed, onToggle, onDelete }: TodoItemPr
         className={cn(
           "flex h-6 w-6 items-center justify-center rounded-full border-2 transition-all duration-300",
           completed
-            ? "border-primary bg-primary text-primary-foreground"
-            : "border-primary/30 hover:border-primary/60"
+            ? "border-indigo-500 bg-indigo-500 text-white"
+            : "border-indigo-300 hover:border-indigo-400"
         )}
       >
         {completed && <Check className="h-4 w-4" />}
@@ -39,7 +40,7 @@ export const TodoItem = ({ id, text, completed, onToggle, onDelete }: TodoItemPr
       <span
         className={cn(
           "flex-1 text-lg transition-all duration-300",
-          completed && "text-muted-foreground line-through"
+          completed ? "text-indigo-300 line-through" : "text-indigo-700"
         )}
       >
         {text}
@@ -48,8 +49,8 @@ export const TodoItem = ({ id, text, completed, onToggle, onDelete }: TodoItemPr
       <button
         onClick={() => onDelete(id)}
         className={cn(
-          "absolute right-4 flex h-8 w-8 items-center justify-center rounded-full text-destructive opacity-0 transition-all duration-300",
-          "hover:bg-destructive/10",
+          "absolute right-4 flex h-8 w-8 items-center justify-center rounded-full text-red-500 opacity-0 transition-all duration-300",
+          "hover:bg-red-50",
           (isHovered || completed) && "opacity-100"
         )}
       >

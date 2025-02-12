@@ -134,72 +134,76 @@ const Index = () => {
   };
 
   return (
-    <div className="mx-auto min-h-screen max-w-2xl px-4 py-8">
-      <div className="mb-8 flex items-center justify-between">
-        <div className="text-left">
-          <h1 className="mb-2 text-4xl font-bold tracking-tight">Tasks</h1>
-          {todoCounts ? (
-            <div className="space-y-1">
-              <p className="text-lg text-muted-foreground">
-                Total tasks: {todoCounts.totalCount}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {todoCounts.completedCount} completed, {todoCounts.totalCount - todoCounts.completedCount} remaining
-              </p>
-            </div>
-          ) : (
-            <p className="text-lg text-muted-foreground">Loading counts...</p>
-          )}
-        </div>
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-2 rounded-lg border px-4 py-2 text-sm text-muted-foreground hover:bg-secondary"
-        >
-          <LogOut className="h-4 w-4" />
-          Sign Out
-        </button>
-      </div>
-
-      <form onSubmit={handleSubmit} className="mb-8">
-        <div className="flex gap-4">
-          <input
-            type="text"
-            value={newTodo}
-            onChange={(e) => setNewTodo(e.target.value)}
-            placeholder="Add a new task..."
-            className="flex-1 rounded-lg border bg-transparent px-4 py-3 text-lg transition-all duration-300 placeholder:text-muted-foreground/50 hover:border-primary/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-          />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 px-4 py-8">
+      <div className="mx-auto max-w-2xl">
+        <div className="mb-8 flex items-center justify-between rounded-2xl bg-white/50 backdrop-blur-sm p-6 shadow-lg">
+          <div className="text-left">
+            <h1 className="mb-2 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-4xl font-bold tracking-tight text-transparent">
+              Tasks
+            </h1>
+            {todoCounts ? (
+              <div className="space-y-1">
+                <p className="text-lg font-medium text-indigo-600">
+                  Total tasks: {todoCounts.totalCount}
+                </p>
+                <p className="text-sm text-indigo-500">
+                  {todoCounts.completedCount} completed, {todoCounts.totalCount - todoCounts.completedCount} remaining
+                </p>
+              </div>
+            ) : (
+              <p className="text-lg text-indigo-500">Loading counts...</p>
+            )}
+          </div>
           <button
-            type="submit"
-            disabled={!newTodo.trim() || addTodoMutation.isPending}
-            className="flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-medium text-primary-foreground transition-all duration-300 hover:bg-primary/90 disabled:opacity-50"
+            onClick={handleLogout}
+            className="flex items-center gap-2 rounded-lg border border-indigo-100 bg-white/50 px-4 py-2 text-sm text-indigo-600 transition-all hover:bg-indigo-50 hover:shadow-md"
           >
-            <Plus className="h-5 w-5" />
-            Add
+            <LogOut className="h-4 w-4" />
+            Sign Out
           </button>
         </div>
-      </form>
 
-      <div className="space-y-4">
-        {isLoading ? (
-          <p className="text-center text-muted-foreground">Loading tasks...</p>
-        ) : todos.length === 0 ? (
-          <EmptyState />
-        ) : (
-          todos.map((todo) => (
-            <TodoItem
-              key={todo.id}
-              {...todo}
-              onToggle={(id) =>
-                toggleTodoMutation.mutate({
-                  id,
-                  completed: !todos.find((t) => t.id === id)?.completed,
-                })
-              }
-              onDelete={(id) => deleteTodoMutation.mutate(id)}
+        <form onSubmit={handleSubmit} className="mb-8">
+          <div className="flex gap-4">
+            <input
+              type="text"
+              value={newTodo}
+              onChange={(e) => setNewTodo(e.target.value)}
+              placeholder="Add a new task..."
+              className="flex-1 rounded-lg border border-indigo-100 bg-white/50 px-4 py-3 text-lg transition-all duration-300 placeholder:text-indigo-300 hover:border-indigo-200 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
             />
-          ))
-        )}
+            <button
+              type="submit"
+              disabled={!newTodo.trim() || addTodoMutation.isPending}
+              className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 px-6 py-3 font-medium text-white transition-all duration-300 hover:from-indigo-600 hover:to-purple-600 disabled:opacity-50"
+            >
+              <Plus className="h-5 w-5" />
+              Add
+            </button>
+          </div>
+        </form>
+
+        <div className="space-y-4">
+          {isLoading ? (
+            <p className="text-center text-indigo-500">Loading tasks...</p>
+          ) : todos.length === 0 ? (
+            <EmptyState />
+          ) : (
+            todos.map((todo) => (
+              <TodoItem
+                key={todo.id}
+                {...todo}
+                onToggle={(id) =>
+                  toggleTodoMutation.mutate({
+                    id,
+                    completed: !todos.find((t) => t.id === id)?.completed,
+                  })
+                }
+                onDelete={(id) => deleteTodoMutation.mutate(id)}
+              />
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
